@@ -69,6 +69,20 @@ static inline bool iswspace_matlab(const uint32_t chr)
     return iswspace(chr) && chr != '\n' && chr != '\r';
 }
 
+
+static inline bool is_punct_custom(const uint32_t chr)
+{
+    // To use instead of std::ispunct, as this is not available to wasm parsers
+    if (chr >= 0x80) {
+        return false;
+    }
+
+    return (chr >= 33 && chr <= 47) ||    // !"#$%&'()*+,-./
+           (chr >= 58 && chr <= 64) ||    // :;<=>?@
+           (chr >= 91 && chr <= 96) ||    // [\]^_`
+           (chr >= 123 && chr <= 126);    // {|}~
+}
+
 static inline bool is_identifier(const uint32_t chr, const bool start)
 {
     // isalpha or isdigit is SIGSEGVing os some UTF-8 chars, like U+10C6BD
@@ -342,7 +356,7 @@ static bool scan_command(Scanner* scanner, TSLexer* lexer)
     }
 
     // Let's now consider punctuation marks.
-    if (ispunct(lexer->lookahead)) {
+    if (is_punct_custom(lexer->lookahead)) {
         // In this case, we advance and look at what comes next too.
         const uint32_t first = lexer->lookahead;
         advance(lexer);
